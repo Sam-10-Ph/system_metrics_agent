@@ -1,0 +1,36 @@
+# ---------- Étape 1 : builder (outils de build, jamais livrée) ----------
+FROM python:3.12.11-slim-bookworm AS builder
+
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# requirements copié AVANT le code : la couche pip reste en cache
+COPY requirements-api.txt .
+RUN pip install --no-cache-dir -r requirements-api.txt
+
+# ---------- Étape 2 : image finale ----------
+FROM python:3.12.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+# Utilisateur non-root
+RUN groupadd --system --gid 10001 app \
+ && useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /srv
+COPY --chown=app:app app/ ./app/
+
+USER app
+EXPOSE 8000
+
+# Pas de curl dans l'image slim : on utilise Python
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+
+# Pas de --reload en production
+CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
