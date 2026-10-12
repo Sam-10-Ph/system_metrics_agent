@@ -1,0 +1,23 @@
+groups:
+  - name: system-metrics
+    rules:
+      - alert: ApiDown
+        expr: up{job="api"} == 0
+        for: 15s
+        labels: {severity: critical}
+        annotations:
+          summary: "L'API ne répond plus au scrape Prometheus"
+
+      - alert: AgentSilent
+        expr: time() - agent_last_report_timestamp_seconds > 30
+        for: 10s
+        labels: {severity: warning}
+        annotations:
+          summary: "Aucune métrique reçue de {{ $labels.hostname }} depuis plus de 30 s"
+
+      - alert: HighCpu
+        expr: agent_cpu_percent > 80
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: "CPU > 80 % sur {{ $labels.hostname }}"
