@@ -29,7 +29,7 @@ jobs:
         run: pytest -q --cov=app --cov-report=xml
 
       - name: Analyse SonarQube
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -79,7 +79,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
       - name: Scan Trivy (HIGH/CRITICAL corrigeables)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ github.sha }}
           format: table
