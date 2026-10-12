@@ -1,0 +1,40 @@
+# ---------- Étape 1 : builder ----------
+FROM python:3.12.11-slim-bookworm AS builder
+
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY requirements-agent.txt .
+RUN pip install --no-cache-dir -r requirements-agent.txt
+
+# ---------- Étape 2 : image finale ----------
+FROM python:3.12.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+# La commande `uptime` (appelée par collector.py via subprocess) est fournie
+# par le paquet Debian "procps", absent de l'image slim.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends procps \
+ && rm -rf /var/lib/apt/lists/* \
+ && uptime
+
+RUN groupadd --system --gid 10001 app \
+ && useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /srv
+COPY --chown=app:app app/ ./app/
+
+USER app
+
+# Valeurs par défaut, surchargées à l'exécution (-e / env_file / compose)
+ENV METRICS_ENDPOINT=http://api:8000/metrics \
+    COLLECTION_INTERVAL=5 \
+    REQUEST_TIMEOUT=5
+
+CMD ["python", "-m", "app.agent"]

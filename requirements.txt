@@ -1,10 +1,8 @@
-fastapi>=0.115.0
-uvicorn[standard]>=0.30.0
-psutil>=6.0.0
-requests>=2.32.0
-python-dotenv>=1.0.1
+# Dépendances de développement et de test (CI)
+-r requirements-api.txt
+-r requirements-agent.txt
 pytest>=8.0.0
+pytest-cov>=5.0.0
 httpx2>=1.0.0
 flake8>=7.4.1
 black>=26.10.0
-
